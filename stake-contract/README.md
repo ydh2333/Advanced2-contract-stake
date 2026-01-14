@@ -5,7 +5,7 @@
 ## 拉取项目
 
 ```zsh
-git clone https://github.com/ProjectsTask/MetaNode-stake-contract
+git clone https://github.com/MetaNodeAcademy/Advanced2-contract-stake/tree/main/stake-contract
 ```
 
 ## 安装依赖
