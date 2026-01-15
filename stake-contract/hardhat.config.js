@@ -14,11 +14,12 @@ module.exports = {
     },
   },
   networks: {
-    // sepolia: {
-    //   url: "https://eth-sepolia.g.alchemy.com/v2/" + process.env.ALCHEMY_API_KEY,
-    //   accounts: [process.env.PRIVATE_KEY],
-    //   gasPrice: 30000000000, // 30 Gwei
-    // },
+    sepolia: {
+      url: "https://sepolia.infura.io/v3/d8ed0bd1de8242d998a1405b6932ab33",
+      // url: "https://eth-sepolia.g.alchemy.com/v2/" + process.env.ALCHEMY_API_KEY,
+      accounts: [process.env.PRIVATE_KEY],
+      gasPrice: 30000000000, // 30 Gwei
+    },
   },
   etherscan: {
     // apiKey: process.env.ETHERSCAN_API_KEY,

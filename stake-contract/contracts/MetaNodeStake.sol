@@ -611,6 +611,7 @@ contract MetaNodeStake is
         );
 
         if (_amount > 0) {
+            // 需要用户提前执行 approve
             IERC20(pool_.stTokenAddress).safeTransferFrom(
                 msg.sender,
                 address(this),
