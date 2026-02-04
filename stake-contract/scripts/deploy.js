@@ -4,12 +4,13 @@ const { ethers, upgrades } = require("hardhat");
 async function main() {
   const [signer] = await ethers.getSigners()
 
-    const MetaNodeToken = await ethers.getContractFactory('MetaNodeToken')
-    const metaNodeToken = await MetaNodeToken.deploy()
+  const MetaNodeToken = await ethers.getContractFactory('MetaNodeToken')
+  const metaNodeToken = await MetaNodeToken.deploy()
 
-    await metaNodeToken.waitForDeployment();
-    const metaNodeTokenAddress = await metaNodeToken.getAddress();
-    
+  await metaNodeToken.waitForDeployment();
+  const metaNodeTokenAddress = await metaNodeToken.getAddress();
+  console.log("metaNodeTokenAddress::", metaNodeTokenAddress)
+
 
   // 1. 获取合约工厂
   const MetaNodeStake = await ethers.getContractFactory("MetaNodeStake");

@@ -30,41 +30,35 @@ contract MetaNodeStake is
 
     // ************************************** DATA STRUCTURE **************************************
     /*
-    Basically, any point in time, the amount of MetaNodes entitled to a user but is pending to be distributed is:
+   基本上，在任何时间点，用户有权获得但尚未分配的元节点数量为：
 
     pending MetaNode = (user.stAmount * pool.accMetaNodePerST) - user.finishedMetaNode
 
-    Whenever a user deposits or withdraws staking tokens to a pool. Here's what happens:
-    1. The pool's `accMetaNodePerST` (and `lastRewardBlock`) gets updated.
-    2. User receives the pending MetaNode sent to his/her address.
-    3. User's `stAmount` gets updated.
-    4. User's `finishedMetaNode` gets updated.
+    每当用户向资金池存入或取出质押代币时，会发生以下情况：
+    1. 资金池的`accMetaNodePerST`（以及`lastRewardBlock`）会得到更新。
+    2. 用户会收到发送到其地址的待领取MetaNode。
+    3. 用户的`stAmount`会得到更新。
+    4. 用户的`finishedMetaNode`会得到更新。
     */
     struct Pool {
-        // Address of staking token
         // 质押代币的地址
         address stTokenAddress;
-        // Weight of pool
         // 不同资金池所占的权重
         uint256 poolWeight;
-        // Last block number that MetaNodes distribution occurs for pool
+        // 记录该资金池上一次计算并分配MetaNode奖励的区块号
         uint256 lastRewardBlock;
-        // Accumulated MetaNodes per staking token of pool
-        // 质押 1个ETH经过1个区块高度，能拿到 n 个MetaNode
+        // 质押 1个ETH经过1个区块高度，能拿到n个MetaNode
         uint256 accMetaNodePerST;
-        // Staking token amount
         // 质押的代币数量
         uint256 stTokenAmount;
-        // Min staking amount
         // 最小质押数量
         uint256 minDepositAmount;
-        // Withdraw locked blocks
         // Unstake locked blocks 解质押锁定的区块高度
         uint256 unstakeLockedBlocks;
     }
 
     struct UnstakeRequest {
-        // Request withdraw amount
+        // 请求提取金额
         uint256 amount; // 用户取消质押的代币数量，要取出多少个 token
         // The blocks when the request withdraw amount can be released
         uint256 unlockBlocks; // 解质押的区块高度
@@ -75,7 +69,7 @@ contract MetaNodeStake is
         // Staking token amount that user provided
         // 用户在当前资金池，质押的代币数量
         uint256 stAmount;
-        // Finished distributed MetaNodes to user 最终 MetaNode 得到的数量
+        // 最终 MetaNode 得到的数量
         // 用户在当前资金池，已经领取的 MetaNode 数量
         uint256 finishedMetaNode;
         // Pending to claim MetaNodes 当前可取数量
@@ -91,8 +85,8 @@ contract MetaNodeStake is
     uint256 public startBlock; // 质押开始区块高度
     // First block that MetaNodeStake will end from
     uint256 public endBlock; // 质押结束区块高度
-    // MetaNode token reward per block
-    uint256 public MetaNodePerBlock; // 每个区块高度，MetaNode 的奖励数量
+    // 每个区块高度，MetaNode 的奖励数量
+    uint256 public MetaNodePerBlock;
 
     // Pause the withdraw function
     bool public withdrawPaused; // 是否暂停提现
@@ -192,7 +186,7 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Set MetaNode token address. Set basic info when deploying.
+     * @notice 设置 MetaNode 代币地址。部署时设置基本信息
      */
     function initialize(
         IERC20 _MetaNode,
@@ -207,10 +201,11 @@ contract MetaNodeStake is
 
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender); // 初始化管理员角色
         _grantRole(UPGRADE_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
 
+        // 初始化核心状态变量（MetaNode 地址、质押起止区块等）
         setMetaNode(_MetaNode);
 
         startBlock = _startBlock;
@@ -225,7 +220,7 @@ contract MetaNodeStake is
     // ************************************** ADMIN FUNCTION **************************************
 
     /**
-     * @notice Set MetaNode token address. Can only be called by admin
+     * @notice 设置MetaNode代币地址。仅可由管理员调用（初始化时已调用）
      */
     function setMetaNode(IERC20 _MetaNode) public onlyRole(ADMIN_ROLE) {
         MetaNode = _MetaNode;
@@ -234,7 +229,7 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Pause withdraw. Can only be called by admin.
+     * @notice 暂停提款。仅可由管理员调用。
      */
     function pauseWithdraw() public onlyRole(ADMIN_ROLE) {
         require(!withdrawPaused, "withdraw has been already paused");
@@ -245,7 +240,7 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Unpause withdraw. Can only be called by admin.
+     * @notice 取消暂停提款。仅可由管理员调用。
      */
     function unpauseWithdraw() public onlyRole(ADMIN_ROLE) {
         require(withdrawPaused, "withdraw has been already unpaused");
@@ -256,7 +251,7 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Pause claim. Can only be called by admin.
+     * @notice 暂停领取。仅可由管理员调用。
      */
     function pauseClaim() public onlyRole(ADMIN_ROLE) {
         require(!claimPaused, "claim has been already paused");
@@ -267,7 +262,7 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Unpause claim. Can only be called by admin.
+     * @notice 取消暂停领取。仅可由管理员调用。
      */
     function unpauseClaim() public onlyRole(ADMIN_ROLE) {
         require(claimPaused, "claim has been already unpaused");
@@ -278,7 +273,7 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Update staking start block. Can only be called by admin.
+     * @notice 更新质押起始区块。仅可由管理员调用。
      */
     function setStartBlock(uint256 _startBlock) public onlyRole(ADMIN_ROLE) {
         require(
@@ -292,7 +287,7 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Update staking end block. Can only be called by admin.
+     * @notice 更新质押结束区块。仅可由管理员调用。
      */
     function setEndBlock(uint256 _endBlock) public onlyRole(ADMIN_ROLE) {
         require(
@@ -306,7 +301,7 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Update the MetaNode reward amount per block. Can only be called by admin.
+     * @notice 更新每个区块的 MetaNode 奖励金额。仅可由管理员调用。
      */
     function setMetaNodePerBlock(
         uint256 _MetaNodePerBlock
@@ -346,7 +341,9 @@ contract MetaNodeStake is
         require(_unstakeLockedBlocks > 0, "invalid withdraw locked blocks");
         require(block.number < endBlock, "Already ended");
 
+        // 判断是否需要触发“全池更新”
         if (_withUpdate) {
+            // 若需要，则执行全池更新
             massUpdatePools();
         }
 
@@ -378,6 +375,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Update the given pool's info (minDepositAmount and unstakeLockedBlocks). Can only be called by admin.
+     *          更新指定资金池的信息（最低存款金额和解质押锁定的区块高度）。仅可由管理员调用。
      */
     function updatePool(
         uint256 _pid,
@@ -391,7 +389,8 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Update the given pool's weight. Can only be called by admin.
+     * @notice Update the given pool's weight. Can only be called by admin.、
+     *          更新指定资金池的权重。仅管理员可调用。
      */
     function setPoolWeight(
         uint256 _pid,
@@ -414,6 +413,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Get the length/amount of pool
+     *          获取资金池的长度/数量
      */
     function poolLength() external view returns (uint256) {
         return pool.length;
@@ -421,7 +421,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Return reward multiplier over given _from to _to block. [_from, _to)
-     *
+     *          返回在给定的_from到_to区块期间的奖励乘数。[_from, _to)
      * @param _from    From block number (included)
      * @param _to      To block number (exluded)
      * getMultiplier(pool_.lastRewardBlock, block.number).tryMul(pool_.poolWeight);
@@ -445,6 +445,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Get pending MetaNode amount of user in pool
+     *          获取用户在资金池中的待领取MetaNode
      */
     function pendingMetaNode(
         uint256 _pid,
@@ -455,6 +456,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Get pending MetaNode amount of user by block number in pool
+     *          根据池中区块编号获取用户的待处理MetaNode数量
      */
     function pendingMetaNodeByBlockNumber(
         uint256 _pid,
@@ -488,6 +490,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Get the staking amount of user
+     *          获取用户的质押金额
      */
     function stakingBalance(
         uint256 _pid,
@@ -498,6 +501,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Get the withdraw amount info, including the locked unstake amount and the unlocked unstake amount
+     *          获取提现金额信息，包括锁定的未质押金额和未锁定的未质押金额，此为累计值
      */
     function withdrawAmount(
         uint256 _pid,
@@ -524,6 +528,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Update reward variables of the given pool to be up-to-date.
+     *          更新指定资金池的奖励变量，使其保持最新。
      */
     function updatePool(uint256 _pid) public checkPid(_pid) {
         Pool storage pool_ = pool[_pid];
@@ -532,25 +537,31 @@ contract MetaNodeStake is
             return;
         }
 
+        // 区域跨度 * 每区块奖励（pool_.poolWeight）
         (bool success1, uint256 totalMetaNode) = getMultiplier(
             pool_.lastRewardBlock,
             block.number
         ).tryMul(pool_.poolWeight);
         require(success1, "overflow");
 
+        // 除以所有资金池总权重，得到当前资金池应得的总奖励
         (success1, totalMetaNode) = totalMetaNode.tryDiv(totalPoolWeight);
         require(success1, "overflow");
 
+        // 当前资金池的总质押量
         uint256 stSupply = pool_.stTokenAmount;
+        // 大于0的话计算单位奖励，等于0的话无需计算
         if (stSupply > 0) {
             (bool success2, uint256 totalMetaNode_) = totalMetaNode.tryMul(
                 1 ether
             );
             require(success2, "overflow");
 
+            // 总奖励 / 总质押量 = 单位质押量的奖励
             (success2, totalMetaNode_) = totalMetaNode_.tryDiv(stSupply);
             require(success2, "overflow");
 
+            // 累加单位奖励到资金池的累计单位奖励
             (bool success3, uint256 accMetaNodePerST) = pool_
                 .accMetaNodePerST
                 .tryAdd(totalMetaNode_);
@@ -565,6 +576,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Update reward variables for all pools. Be careful of gas spending!
+     *          更新所有资金池的奖励变量。为了控制gas消耗！
      */
     function massUpdatePools() public {
         uint256 length = pool.length;
@@ -575,6 +587,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Deposit staking ETH for MetaNode rewards
+     *          质押以太坊以获取MetaNode奖励
      */
     function depositETH() public payable whenNotPaused {
         Pool storage pool_ = pool[ETH_PID];
@@ -593,8 +606,9 @@ contract MetaNodeStake is
     }
 
     /**
-     * @notice Deposit staking token for MetaNode rewards
+     * @notice Deposit staking token for MetaNode rewards   存入质押代币以获取MetaNode奖励
      * Before depositing, user needs approve this contract to be able to spend or transfer their staking tokens
+     *  存款前，用户需要批准此合约，以便能够花费或转移其质押代币。
      *
      * @param _pid       Id of the pool to be deposited to
      * @param _amount    Amount of staking tokens to be deposited
@@ -624,6 +638,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Unstake staking tokens
+     *          赎回质押代币
      *
      * @param _pid       Id of the pool to be withdrawn from
      * @param _amount    amount of staking tokens to be withdrawn
@@ -637,16 +652,20 @@ contract MetaNodeStake is
 
         require(user_.stAmount >= _amount, "Not enough staking token balance");
 
+        // 1. 更新目标池子的奖励参数到当前区块（重要）
         updatePool(_pid);
 
+        // 2. 计算用户当前质押量的MetaNode奖励
         uint256 pendingMetaNode_ = (user_.stAmount * pool_.accMetaNodePerST) /
             (1 ether) -
             user_.finishedMetaNode;
 
+        // 3. 更新当前可领取的MetaNode奖励
         if (pendingMetaNode_ > 0) {
             user_.pendingMetaNode = user_.pendingMetaNode + pendingMetaNode_;
         }
 
+        // 4. 增加赎回请求
         if (_amount > 0) {
             user_.stAmount = user_.stAmount - _amount;
             user_.requests.push(
@@ -657,6 +676,7 @@ contract MetaNodeStake is
             );
         }
 
+        // 5. 更新目标池子的质押量
         pool_.stTokenAmount = pool_.stTokenAmount - _amount;
         user_.finishedMetaNode =
             (user_.stAmount * pool_.accMetaNodePerST) /
@@ -667,6 +687,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Withdraw the unlock unstake amount
+     *          提取解锁的未质押金额
      *
      * @param _pid       Id of the pool to be withdrawn from
      */
@@ -676,8 +697,11 @@ contract MetaNodeStake is
         Pool storage pool_ = pool[_pid];
         User storage user_ = user[_pid][msg.sender];
 
+        // 累计用户本次可提取的已解锁资产金额
         uint256 pendingWithdraw_;
+        // 累计需要删除的「已解锁请求」数量（用于后续清理列表）
         uint256 popNum_;
+        // 统计已解锁的可提现金额
         for (uint256 i = 0; i < user_.requests.length; i++) {
             if (user_.requests[i].unlockBlocks > block.number) {
                 break;
@@ -686,14 +710,17 @@ contract MetaNodeStake is
             popNum_++;
         }
 
+        // 将未解锁的请求（后 N 个）向前移动，覆盖已解锁的请求（前 popNum_ 个）
         for (uint256 i = 0; i < user_.requests.length - popNum_; i++) {
             user_.requests[i] = user_.requests[i + popNum_];
         }
 
+        // 删除数组末尾多余的「已覆盖请求」（共 popNum_ 个），pop()是弹出最后一个元素
         for (uint256 i = 0; i < popNum_; i++) {
             user_.requests.pop();
         }
 
+        // 转移已解锁的资产回用户
         if (pendingWithdraw_ > 0) {
             if (pool_.stTokenAddress == address(0x0)) {
                 _safeETHTransfer(msg.sender, pendingWithdraw_);
@@ -710,6 +737,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Claim MetaNode tokens reward
+     *          领取MetaNode代币奖励
      *
      * @param _pid       Id of the pool to be claimed from
      */
@@ -742,7 +770,7 @@ contract MetaNodeStake is
 
     /**
      * @notice Deposit staking token for MetaNode rewards
-     *
+     *          存入质押代币以获取MetaNode奖励
      * @param _pid       Id of the pool to be deposited to
      * @param _amount    Amount of staking tokens to be deposited
      */
@@ -750,22 +778,28 @@ contract MetaNodeStake is
         Pool storage pool_ = pool[_pid];
         User storage user_ = user[_pid][msg.sender];
 
+        // 1. 更新目标池子的奖励参数到当前区块（重要）
+        // 若不更新，用户本次质押时，奖励计算会基于旧的区块数据，导致「待领取奖励」少算
         updatePool(_pid);
 
+        // 2. 计算历史待领取的奖励并暂存
         if (user_.stAmount > 0) {
             // uint256 accST = user_.stAmount.mulDiv(pool_.accMetaNodePerST, 1 ether);
+            // 计算 用户累计应得奖励 = 历史质押量 × 池的单位质押奖励
             (bool success1, uint256 accST) = user_.stAmount.tryMul(
                 pool_.accMetaNodePerST
             );
             require(success1, "user stAmount mul accMetaNodePerST overflow");
+            // 除以 1 ether，去除掉18位小数
             (success1, accST) = accST.tryDiv(1 ether);
             require(success1, "accST div 1 ether overflow");
-
+            // 计算 待领取奖励 = 累计应得奖励 - 已领取奖励（finishedMetaNode）
             (bool success2, uint256 pendingMetaNode_) = accST.trySub(
                 user_.finishedMetaNode
             );
             require(success2, "accST sub finishedMetaNode overflow");
 
+            // 将待领取奖励到用户
             if (pendingMetaNode_ > 0) {
                 (bool success3, uint256 _pendingMetaNode) = user_
                     .pendingMetaNode
@@ -775,12 +809,14 @@ contract MetaNodeStake is
             }
         }
 
+        // 3. 叠加用户质押金额
         if (_amount > 0) {
             (bool success4, uint256 stAmount) = user_.stAmount.tryAdd(_amount);
             require(success4, "user stAmount overflow");
             user_.stAmount = stAmount;
         }
 
+        // 4. 叠加池子质押总量
         (bool success5, uint256 stTokenAmount) = pool_.stTokenAmount.tryAdd(
             _amount
         );
@@ -788,6 +824,7 @@ contract MetaNodeStake is
         pool_.stTokenAmount = stTokenAmount;
 
         // user_.finishedMetaNode = user_.stAmount.mulDiv(pool_.accMetaNodePerST, 1 ether);
+        // 5. 计算 新的已结算奖励 = 最新质押量 × 最新单位质押奖励 ÷ 1e18
         (bool success6, uint256 finishedMetaNode) = user_.stAmount.tryMul(
             pool_.accMetaNodePerST
         );
@@ -796,13 +833,14 @@ contract MetaNodeStake is
         (success6, finishedMetaNode) = finishedMetaNode.tryDiv(1 ether);
         require(success6, "finishedMetaNode div 1 ether overflow");
 
-        user_.finishedMetaNode = finishedMetaNode;
+        user_.finishedMetaNode = finishedMetaNode; // 重置已结算奖励基准
 
         emit Deposit(msg.sender, _pid, _amount);
     }
 
     /**
      * @notice Safe MetaNode transfer function, just in case if rounding error causes pool to not have enough MetaNodes
+     *          安全的元节点转移函数，以防舍入误差导致池中的元节点不足
      *
      * @param _to        Address to get transferred MetaNodes
      * @param _amount    Amount of MetaNode to be transferred
